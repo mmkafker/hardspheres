@@ -1,0 +1,45 @@
+(*Call with: wolframscript -file ICs.nb *)
+
+num=500;
+BoxSize=50;
+ParticleRadius=1;
+ThermalizeSteps=50;
+StepSize=0.1;
+PrintData=False;
+WritePositions=False;
+MCSteps=10000;
+alpha = 5000;
+mass=1;
+beta=1;
+
+If[WritePositions==True,
+initdata=Last[ResourceFunction[
+ "HardSphereSimulation"][<|"Positions" -> "RandomNonOverlapping", "Velocities" -> RandomPoint[Ball[{0, 0}, 1], num], "BoxSize" -> BoxSize, "ParticleRadius" -> ParticleRadius, "Steps" -> ThermalizeSteps, "StepSize" -> StepSize, "BoundaryCondition" -> "Periodic", "Output" -> "PositionsByTime"|>]];  
+Export["x_0.bin", initdata[[All,1]],"Real64"]; 
+Export["y_0.bin", initdata[[All,2]],"Real64"]; 
+If[PrintData==True,Do[Print[initdata[[i]]],{i,Length[initdata]}]];
+];
+
+
+MaxwellBoltzmannDistribution[m_, beta_] := BinormalDistribution[{1/Sqrt[m beta], 1/Sqrt[m beta]}, 0];
+
+particles=RandomChoice[Range[0,num-1,1],MCSteps];
+Export["particles.bin",particles,"Integer32"];
+trialsteps=RandomVariate[MaxwellBoltzmannDistribution[mass,beta],alpha*MCSteps];
+Export["vx.bin", trialsteps[[All,1]],"Real64"];
+Export["vy.bin", trialsteps[[All,2]],"Real64"];
+
+
+(*Do[
+Print["Writing trials movies: R = "<>ToString[R]<>", "<>ToString[i]<>"/9"];
+particles=RandomChoice[Range[0,num-1,1],MCSteps];
+Export["particles_R"<>ToString[R]<>"_t"<>ToString[i]<>".bin",particles,"Integer32"];
+If[PrintData==True,Print[particles]];
+
+
+trialsteps=RandomVariate[MaxwellBoltzmannDistribution[mass,beta],alpha*MCSteps];
+Export["vx_R"<>ToString[R]<>"_t"<>ToString[i]<>".bin", trialsteps[[All,1]],"Real64"];
+Export["vy_R"<>ToString[R]<>"_t"<>ToString[i]<>".bin", trialsteps[[All,2]],"Real64"];
+If[PrintData==True,Print[Total[Flatten[trialsteps]]]];
+
+,{i,0,9},{R,0,6}];*)

@@ -30,10 +30,10 @@ int main(int argc, char *argv[])
     sprintf(filename,"y_%d.bin",fileind); y_file = fopen(filename,"rb"); 
     
     // Simulation Parameters
-    int N; N = 500;
+    int N; N = 104329;
     double *x; x = malloc(N*sizeof(double));
     double *y; y = malloc(N*sizeof(double));
-    double bs = 50.0;
+    double bs = 680.0;
 
     double Rs[31] = {1., 1.005, 1.01, 1.015, 1.02, 1.025, 1.03, 1.035, 1.04, 1.045, 1.05, \
 1.055, 1.06, 1.065, 1.07, 1.075, 1.08, 1.085, 1.09, 1.095, 1.1, \
@@ -45,14 +45,15 @@ int main(int argc, char *argv[])
     int maxneigh = 10;
     int M = N*maxneigh;
     int *neighbors; neighbors = malloc(M*sizeof(int));
-    int i, j, k;
+    long int i, j, k;
     double xsep, ysep, sep;
     
     for (i=0;i<M;i++) neighbors[i] = -1;
     
     for (i=0;i<N;i++)
     {
-        k = 0; // To keep track of each neighbor we find.
+        if (i%1000==0) printf("i = %ld\n",i);
+	k = 0; // To keep track of each neighbor we find.
 	for(j=0;j<N;j++)
 	{
             xsep = x[i]-x[j]; ysep = y[i]-y[j];

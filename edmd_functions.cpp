@@ -1,7 +1,18 @@
 #include "edmd_functions.hpp"
 
-void writePositions(const std::vector<std::vector<double>>& state, const std::string& filename) {
-    std::ofstream out(filename, std::ios::binary);
+#include <cstdio> // for std::remove
+
+void writePositions(const std::vector<std::vector<double>>& state, int simid, int s) {
+    // Create the filename
+    std::string filename = "pos_" + std::to_string(simid) + ".bin";
+
+    // If s == 0, remove the existing file
+    if (s == 0) {
+        std::remove(filename.c_str());
+    }
+
+    // Open the file in binary mode and append mode
+    std::ofstream out(filename, std::ios::binary | std::ios::app);
     if (!out.is_open()) {
         throw std::runtime_error("Could not open file for writing");
     }
@@ -15,6 +26,8 @@ void writePositions(const std::vector<std::vector<double>>& state, const std::st
 
     out.close();
 }
+
+
 
 void PBCvec(std::vector<double>& x, double L) 
 {
@@ -425,7 +438,7 @@ void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std:
     if(positions.size() != num || velocities.size() != num) 
     {
         std::cout << "Check value of 'num'\n";
-        std::cout << "positions.size() = "<<positions.size() <<", velocities.size() = "<<velocities.size()<<"num = "<<num <<std::endl;
+        std::cout << "positions.size() = "<<positions.size() <<", velocities.size() = "<<velocities.size()<<", num = "<<num <<std::endl;
         throw std::invalid_argument("num does not match the length of positions or velocities");
     }
     std::vector<double> times(steps, 0.0);
@@ -457,10 +470,11 @@ void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std:
         if (s % 10000 == 0) {
             std::cout << s << "\n";
             std::vector<std::vector<double>> statetf = printstate(state,L);
-            std::string prefix = "pos";
-            std::string fname = prefix + "_" + std::to_string(simid) + "_" + std::to_string(s) + ".bin";
 
-            writePositions(statetf, fname);
+            writePositions(statetf, simid,s);
+            // writePositions(statetf, fname);
+
+            writeCollisions(collisions, simid);
         }
         simstep(ed, ec, state, particle2cell, cell2particle, collcounter, collisions, L, R, ncells, cellcenters, cellsize);
         
@@ -481,4 +495,25 @@ std::vector<double> readBinaryFile(const std::string& filename) {
     }
 
     return data;
+}
+
+void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid) {
+    std::ofstream outfile;
+    std::string filename = "collisions_" + std::to_string(simid) + ".txt";
+    outfile.open(filename);
+
+    if (outfile.is_open())
+    {
+        for(const auto& collision : collisions)
+        {
+            outfile << std::get<0>(collision) << "\t"
+                    << std::get<1>(collision) << "\t"
+                    << std::get<2>(collision) << std::endl;
+        }
+        outfile.close();
+    }
+    else
+    {
+        std::cout << "Unable to open file";
+    }
 }

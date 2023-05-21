@@ -18,7 +18,7 @@
 
 
 
-void writePositions(const std::vector<std::vector<double>>& state, const std::string& filename);
+void writePositions(const std::vector<std::vector<double>>& state, int simid, int s);
 
 void PBCvec(std::vector<double>& x, double L) ;
 
@@ -119,6 +119,8 @@ void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std:
 
 // Function to read binary file into a vector of doubles
 std::vector<double> readBinaryFile(const std::string& filename) ;
+
+void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid);
 
 
 #endif

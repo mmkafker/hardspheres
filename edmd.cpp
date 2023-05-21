@@ -9,12 +9,14 @@ int main(int argc, char** argv) {
 
     int simid = std::atoi(argv[1]);
 
-    double L = 543.1092384666489;//212.15204627603475;
+    double L = 543.1092384666489;  //212.15204627603475;
     double R = 1;
     int num = 256*256;
-    int steps = 500;
+    int steps = 200000+1;
 
-    std::vector<double> data = readBinaryFile("disorderedIPs256.bin");
+
+    std::string filepath = "/home/matt/Documents/mmk/WPP/Zsweep/edmd_N256sq_0p698";
+    std::vector<double> data = readBinaryFile(filepath+"/"+"disorderedIPs256.bin");
 
     // Assuming the data should be reshaped into a 2D array with two columns
     std::vector<std::vector<double>> IPs(data.size()/2, std::vector<double>(2));
@@ -42,6 +44,20 @@ int main(int argc, char** argv) {
         pi[1] += IVs[p][1];
         Ei += 0.5 * (IVs[p][0]*IVs[p][0] +  IVs[p][1]*IVs[p][1]);
     }
+
+    std::string filename = "energy_" + std::to_string(simid) + ".txt";
+    std::ofstream outfile(filename);
+
+    if (outfile.is_open())
+    {
+        outfile << Ei << std::endl;    
+        outfile.close();
+    }
+    else
+    {
+        std::cout << "Unable to open file";
+    }
+
     // std::cout << "Initial energy " << Ei << std::endl;
     // std::cout << "Initial momentum (" << pi[0] <<", " << pi[1] <<")" << std::endl;
 
@@ -58,40 +74,10 @@ int main(int argc, char** argv) {
     std::cout << "Final energy " << Ef << std::endl;
     std::cout << "Final momentum (" << pf[0] <<", " << pf[1] <<")" << std::endl;
 
+    writeCollisions(collisions, simid);
 
-    // std::vector<std::vector<double>> statetf = printstate(state,L);
-    // writePositions(statetf, "writertest.bin");
 
-    //for(int i=0;i<num;i++) std::cout<<std::get<0>(collisions[i])<<" "<<std::get<1>(collisions[i])<<" "<<std::get<2>(collisions[i])<<std::endl;
-    std::string filename = "collisions_" + std::to_string(simid) + ".txt";
-    std::ofstream outfile(filename);
 
-    if (outfile.is_open())
-    {
-        for(int i=0;i<num;i++)
-            outfile << std::get<0>(collisions[i]) << "\t"
-                    << std::get<1>(collisions[i]) << "\t"
-                    << std::get<2>(collisions[i]) << std::endl;
-
-        outfile.close();
-    }
-    else
-    {
-        std::cout << "Unable to open file";
-    }
-
-    filename = "energy_" + std::to_string(simid) + ".txt";
-    outfile.open(filename);
-
-    if (outfile.is_open())
-    {
-        outfile << Ef << std::endl;    
-        outfile.close();
-    }
-    else
-    {
-        std::cout << "Unable to open file";
-    }
 
     std::cout << "Momentum conservation: " << (pi[0]-pf[0])/pi[0] << " " << (pi[1]-pf[1])/pi[1] << std::endl;
     std::cout << "Energy conservation: " << std::abs((Ei - Ef) / Ei) << std::endl;

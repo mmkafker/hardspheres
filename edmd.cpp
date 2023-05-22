@@ -9,14 +9,13 @@ int main(int argc, char** argv) {
 
     int simid = std::atoi(argv[1]);
 
-    double L = 543.1092384666489;  //212.15204627603475;
+    double L = 534.7473652546134;
     double R = 1;
     int num = 256*256;
-    int steps = 200000+1;
+    long long steps = 4000000000;
 
 
-    std::string filepath = "/home/matt/Documents/mmk/WPP/Zsweep/edmd_N256sq_0p698";
-    std::vector<double> data = readBinaryFile(filepath+"/"+"disorderedIPs256.bin");
+    std::vector<double> data = readBinaryFile("IPs.bin");
 
     // Assuming the data should be reshaped into a 2D array with two columns
     std::vector<std::vector<double>> IPs(data.size()/2, std::vector<double>(2));

@@ -113,7 +113,7 @@ void simstep(std::unordered_map<int, std::vector<std::tuple<double, int, int, in
 
 
 
-void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std::vector<double>> velocities, double L, double R, int num, int steps,
+void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std::vector<double>> velocities, double L, double R, int num, long long steps,
     std::vector<std::vector<double>>& state, std::vector<std::tuple<int, int, double>>& collisions,int simid) ;
 
 

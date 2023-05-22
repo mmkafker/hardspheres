@@ -432,7 +432,7 @@ void simstep(std::unordered_map<int, std::vector<std::tuple<double, int, int, in
 
 
 
-void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std::vector<double>> velocities, double L, double R, int num, int steps,
+void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std::vector<double>> velocities, double L, double R, int num, long long steps,
     std::vector<std::vector<double>>& state, std::vector<std::tuple<int, int, double>>& collisions,int simid) 
 {
     if(positions.size() != num || velocities.size() != num) 
@@ -465,9 +465,9 @@ void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std:
     std::set<Event, Compare> ec = GenEventCalendar(ed, num);
 
     int collcounter = -1;
-    for (int s = 0; s < steps; ++s) 
+    for (long long s = 0; s < steps; ++s) 
     {
-        if (s % 10000 == 0) {
+        if (s % 100000 == 0) {
             std::cout << s << "\n";
             std::vector<std::vector<double>> statetf = printstate(state,L);
 

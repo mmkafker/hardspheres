@@ -2,20 +2,30 @@
 
 
 int main(int argc, char** argv) {
-    if(argc < 2) {
-        std::cerr << "You must provide a single integer as argument.\n";
-        return 1; // Return with error code
+
+    if (argc != 5) {
+        std::cerr << "Usage: " << argv[0] << " <integer> <double> <filename> <steps>" << std::endl;
+        return 1; // return with error code
     }
+    
+    // Argument 1 - Integer
+    int simid = std::stoi(argv[1]);
 
-    int simid = std::atoi(argv[1]);
+    // Argument 2 - Double
+    double L = std::atof(argv[2]);  // atof converts C-string to double
 
-    double L = 534.7473652546134;
+    // Argument 3 - Filename
+    std::string inputFile = argv[3];
+
+    // Argument 4 – Steps
+    long long steps = std::stoll(argv[4]);
+
+    
     double R = 1;
     int num = 256*256;
-    long long steps = 4000000000;
+    // long long steps = 4000000000;
 
-
-    std::vector<double> data = readBinaryFile("IPs.bin");
+    std::vector<double> data = readBinaryFile(inputFile);
 
     // Assuming the data should be reshaped into a 2D array with two columns
     std::vector<std::vector<double>> IPs(data.size()/2, std::vector<double>(2));
@@ -49,7 +59,11 @@ int main(int argc, char** argv) {
 
     if (outfile.is_open())
     {
-        outfile << Ei << std::endl;    
+        outfile << "Energy "<<Ei << std::endl;    
+        outfile << "L "<<L << std::endl;    
+        outfile << "Input file "<<inputFile << std::endl;    
+        outfile << "Number of particles "<<num << std::endl;    
+        outfile << "Number of steps "<<steps << std::endl;    
         outfile.close();
     }
     else
@@ -73,7 +87,7 @@ int main(int argc, char** argv) {
     std::cout << "Final energy " << Ef << std::endl;
     std::cout << "Final momentum (" << pf[0] <<", " << pf[1] <<")" << std::endl;
 
-    writeCollisions(collisions, simid);
+    // writeCollisions(collisions, simid);
 
 
 

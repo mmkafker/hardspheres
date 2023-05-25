@@ -85,12 +85,12 @@ std::vector<std::tuple<double, int, int, int, int, int, int>> FindCellCrossings(
 
     if(statep[3] != 0) {
         double tx = ((xcen + (statep[3] > 0 ? 1 : -1) * 0.5 * cellsize - statep[1]) / statep[3]) * (1 + 1e-10);
-        events.emplace_back(tx + statep[0], 0, particle, cellind[0], cellind[1], 
+        if (tx > 0) events.emplace_back(tx + statep[0], 0, particle, cellind[0], cellind[1], 
                             cmod(cellind[0] + (statep[3] > 0 ? 1 : -1),ncells), cmod(cellind[1], ncells));
     }
     if(statep[4] != 0) {
         double ty = ((ycen + (statep[4] > 0 ? 1 : -1) * 0.5 * cellsize - statep[2]) / statep[4]) * (1 + 1e-10);
-        events.emplace_back(ty + statep[0], 0, particle, cellind[0], cellind[1], 
+        if (ty > 0) events.emplace_back(ty + statep[0], 0, particle, cellind[0], cellind[1], 
                             cmod(cellind[0], ncells), cmod(cellind[1] + (statep[4] > 0 ? 1 : -1), ncells));
     }
 
@@ -193,27 +193,22 @@ std::vector<std::tuple<double, int, int, int, int, int, int>> FindCollisions(int
 
     std::vector<int> neighbors;
 
-    
-    // ChatGPT had originally written this loop with auto. Probably just have it do that again.
-    // for (int i = 0; i < neighinds.size(); i++) {
-    //     std::unordered_map<std::pair<int, int>, std::vector<int>>::const_iterator iter = cell2particle.find(neighinds[i]);
-    //     if(iter != cell2particle.end()){
-    //         neighbors.insert(neighbors.end(), iter->second.begin(), iter->second.end());
-    //     }
-    // }
-    for (auto i = 0; i < neighinds.size(); i++) {
+
+    for (auto i = 0; i < neighinds.size(); i++) 
+    {
         auto iter = cell2particle.find(neighinds[i]);
         if(iter != cell2particle.end()){
             neighbors.insert(neighbors.end(), iter->second.begin(), iter->second.end());
     }
-}
+    }
 
 
     neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), particle), neighbors.end());
 
     std::vector<std::tuple<double, int, int, int, int, int, int>> colls;
 
-    for (int i = 0; i < neighbors.size(); i++) {
+    for (int i = 0; i < neighbors.size(); i++) 
+    {
         std::optional<double> t = GetCollisionTimeDiff(state[particle], state[neighbors[i]], R, L);
         if(t.has_value()){
             colls.emplace_back(t.value(), 1, particle, neighbors[i], -1, -1, -1);
@@ -417,6 +412,8 @@ void simstep(std::unordered_map<int, std::vector<std::tuple<double, int, int, in
         if (etype == 0) {
             std::cout << "State: " << state[std::get<2>(ne)][0] <<" " <<state[std::get<2>(ne)][1] <<" " <<state[std::get<2>(ne)][2] <<" " <<state[std::get<2>(ne)][3] <<" " <<state[std::get<2>(ne)][4] << std::endl;
         }
+
+        
         assert(false);
     }
     
@@ -474,7 +471,11 @@ void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std:
             writePositions(statetf, simid,s);
             // writePositions(statetf, fname);
 
+        }
+        if (s% 50000000 == 0) 
+        {
             writeCollisions(collisions, simid);
+            collisions.clear();
         }
         simstep(ed, ec, state, particle2cell, cell2particle, collcounter, collisions, L, R, ncells, cellcenters, cellsize);
         
@@ -497,10 +498,31 @@ std::vector<double> readBinaryFile(const std::string& filename) {
     return data;
 }
 
+// void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid) {
+//     std::ofstream outfile;
+//     std::string filename = "collisions_" + std::to_string(simid) + ".txt";
+//     outfile.open(filename);
+
+//     if (outfile.is_open())
+//     {
+//         for(const auto& collision : collisions)
+//         {
+//             outfile << std::get<0>(collision) << "\t"
+//                     << std::get<1>(collision) << "\t"
+//                     << std::get<2>(collision) << std::endl;
+//         }
+//         outfile.close();
+//     }
+//     else
+//     {
+//         std::cout << "Unable to open file";
+//     }
+// }
+
 void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid) {
     std::ofstream outfile;
     std::string filename = "collisions_" + std::to_string(simid) + ".txt";
-    outfile.open(filename);
+    outfile.open(filename, std::ios_base::app);
 
     if (outfile.is_open())
     {

@@ -20,10 +20,11 @@ int main(int argc, char** argv) {
     // Argument 4 – Steps
     long long steps = std::stoll(argv[4]);
 
+
+
     
     double R = 1;
     int num = 256*256;
-    // long long steps = 4000000000;
 
     std::vector<double> data = readBinaryFile(inputFile);
 
@@ -54,9 +55,8 @@ int main(int argc, char** argv) {
         Ei += 0.5 * (IVs[p][0]*IVs[p][0] +  IVs[p][1]*IVs[p][1]);
     }
 
-    std::string filename = "energy_" + std::to_string(simid) + ".txt";
-    std::ofstream outfile(filename);
-
+    std::string filename = "output_" + std::to_string(simid) + ".txt";
+    std::ofstream outfile(filename, std::ios::app);
     if (outfile.is_open())
     {
         outfile << "Energy "<<Ei << std::endl;    
@@ -70,13 +70,47 @@ int main(int argc, char** argv) {
     {
         std::cout << "Unable to open file";
     }
-
-    // std::cout << "Initial energy " << Ei << std::endl;
-    // std::cout << "Initial momentum (" << pi[0] <<", " << pi[1] <<")" << std::endl;
-
     std::vector<std::vector<double>> state(num, std::vector<double>(5, 0.0));
     std::vector<std::tuple<int, int, double>> collisions = {};
-    HardSphereEDMD(IPs, IVs, L, R, num, steps,state,collisions,simid);
+
+    long long substeps = 5000000;
+
+    long long checkpointid = 0;
+    while (checkpointid*substeps<steps)
+    {
+        
+        std::cout << "Checkpoint " << checkpointid << std::endl;
+        HardSphereEDMD(IPs, IVs, L, R, num, substeps,state,collisions,simid,checkpointid);
+        std::vector<std::vector<double>> statetf = printstate(state,L);
+
+        writeState(statetf, simid, checkpointid);
+
+        writeCollisions(collisions, simid,checkpointid);
+        collisions.clear();
+
+        std::string filename = "output_" + std::to_string(simid) + ".txt";
+        std::ofstream outfile(filename, std::ios::app);
+        if (outfile.is_open())
+        {
+            outfile << "Checkpoint "<<checkpointid << " time = " << statetf[0][0] << std::endl;    
+            outfile.close();
+        }
+        else
+        {
+            std::cout << "Unable to open output file";
+        }
+
+
+        for(int i = 0;i<num;i++)
+        {
+            IPs[i][0] = statetf[i][1];
+            IPs[i][1] = statetf[i][2];
+            IVs[i][0] = statetf[i][3];
+            IVs[i][1] = statetf[i][4];
+        }
+
+        checkpointid++;
+    }
 
     for(int i = 0;i<num;i++)
     { 

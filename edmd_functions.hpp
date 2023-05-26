@@ -20,6 +20,8 @@
 
 void writePositions(const std::vector<std::vector<double>>& state, int simid, int s);
 
+void writeState(const std::vector<std::vector<double>>& state, int simid, int checkpointid);
+
 void PBCvec(std::vector<double>& x, double L) ;
 
 
@@ -111,16 +113,14 @@ void simstep(std::unordered_map<int, std::vector<std::tuple<double, int, int, in
 
 
 
-
-
 void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std::vector<double>> velocities, double L, double R, int num, long long steps,
-    std::vector<std::vector<double>>& state, std::vector<std::tuple<int, int, double>>& collisions,int simid) ;
+    std::vector<std::vector<double>>& state, std::vector<std::tuple<int, int, double>>& collisions,int simid,int checkpointid) ;
 
 
 // Function to read binary file into a vector of doubles
 std::vector<double> readBinaryFile(const std::string& filename) ;
 
-void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid);
+void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid, int checkpointid);
 
 
 #endif

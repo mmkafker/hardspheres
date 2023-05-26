@@ -1,6 +1,8 @@
 #include "edmd_functions.hpp"
 
 #include <cstdio> // for std::remove
+#include <iomanip> // For std::setprecision
+#include <limits>  // For std::numeric_limits
 
 void writePositions(const std::vector<std::vector<double>>& state, int simid, int s) {
     // Create the filename
@@ -26,6 +28,28 @@ void writePositions(const std::vector<std::vector<double>>& state, int simid, in
 
     out.close();
 }
+
+void writeState(const std::vector<std::vector<double>>& state, int simid, int checkpointid) {
+    // Create the filename
+    std::string filename = "state_simid" + std::to_string(simid) + "_chckpt" + std::to_string(checkpointid) + ".bin";
+
+    // Open the file in binary mode
+    std::ofstream out(filename, std::ios::binary);
+    if (!out.is_open()) {
+        throw std::runtime_error("Could not open file for writing");
+    }
+
+    for (const auto& row : state) {
+        for (int i = 0; i < 5; ++i) { // write the first five elements
+            double val = row[i];
+            out.write(reinterpret_cast<const char*>(&val), sizeof(double));
+        }
+    }
+
+    out.close();
+}
+
+
 
 
 
@@ -85,12 +109,12 @@ std::vector<std::tuple<double, int, int, int, int, int, int>> FindCellCrossings(
 
     if(statep[3] != 0) {
         double tx = ((xcen + (statep[3] > 0 ? 1 : -1) * 0.5 * cellsize - statep[1]) / statep[3]) * (1 + 1e-10);
-        if (tx > 0) events.emplace_back(tx + statep[0], 0, particle, cellind[0], cellind[1], 
+        events.emplace_back(tx + statep[0], 0, particle, cellind[0], cellind[1], 
                             cmod(cellind[0] + (statep[3] > 0 ? 1 : -1),ncells), cmod(cellind[1], ncells));
     }
     if(statep[4] != 0) {
         double ty = ((ycen + (statep[4] > 0 ? 1 : -1) * 0.5 * cellsize - statep[2]) / statep[4]) * (1 + 1e-10);
-        if (ty > 0) events.emplace_back(ty + statep[0], 0, particle, cellind[0], cellind[1], 
+        events.emplace_back(ty + statep[0], 0, particle, cellind[0], cellind[1], 
                             cmod(cellind[0], ncells), cmod(cellind[1] + (statep[4] > 0 ? 1 : -1), ncells));
     }
 
@@ -430,7 +454,7 @@ void simstep(std::unordered_map<int, std::vector<std::tuple<double, int, int, in
 
 
 void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std::vector<double>> velocities, double L, double R, int num, long long steps,
-    std::vector<std::vector<double>>& state, std::vector<std::tuple<int, int, double>>& collisions,int simid) 
+    std::vector<std::vector<double>>& state, std::vector<std::tuple<int, int, double>>& collisions,int simid,int checkpointid) 
 {
     if(positions.size() != num || velocities.size() != num) 
     {
@@ -464,18 +488,14 @@ void HardSphereEDMD(std::vector<std::vector<double>> positions, std::vector<std:
     int collcounter = -1;
     for (long long s = 0; s < steps; ++s) 
     {
-        if (s % 100000 == 0) {
-            std::cout << s << "\n";
+        if (s % 100000 == 0) 
+        {
+            std::cout << "Simulation "  << simid << ", checkpoint " << checkpointid <<", step " << s << std::endl;
             std::vector<std::vector<double>> statetf = printstate(state,L);
 
             writePositions(statetf, simid,s);
             // writePositions(statetf, fname);
 
-        }
-        if (s% 50000000 == 0) 
-        {
-            writeCollisions(collisions, simid);
-            collisions.clear();
         }
         simstep(ed, ec, state, particle2cell, cell2particle, collcounter, collisions, L, R, ncells, cellcenters, cellsize);
         
@@ -498,30 +518,9 @@ std::vector<double> readBinaryFile(const std::string& filename) {
     return data;
 }
 
-// void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid) {
-//     std::ofstream outfile;
-//     std::string filename = "collisions_" + std::to_string(simid) + ".txt";
-//     outfile.open(filename);
-
-//     if (outfile.is_open())
-//     {
-//         for(const auto& collision : collisions)
-//         {
-//             outfile << std::get<0>(collision) << "\t"
-//                     << std::get<1>(collision) << "\t"
-//                     << std::get<2>(collision) << std::endl;
-//         }
-//         outfile.close();
-//     }
-//     else
-//     {
-//         std::cout << "Unable to open file";
-//     }
-// }
-
-void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid) {
+void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid, int checkpointid) {
     std::ofstream outfile;
-    std::string filename = "collisions_" + std::to_string(simid) + ".txt";
+    std::string filename = "collisions_simid" + std::to_string(simid) + "_chckpt" + std::to_string(checkpointid) + ".txt";
     outfile.open(filename, std::ios_base::app);
 
     if (outfile.is_open())
@@ -530,7 +529,7 @@ void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions
         {
             outfile << std::get<0>(collision) << "\t"
                     << std::get<1>(collision) << "\t"
-                    << std::get<2>(collision) << std::endl;
+                    << std::setprecision(std::numeric_limits<double>::max_digits10) << std::get<2>(collision) << std::endl;
         }
         outfile.close();
     }

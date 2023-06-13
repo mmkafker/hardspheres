@@ -9,9 +9,9 @@ void writePositions(const std::vector<std::vector<double>>& state, int simid, in
     std::string filename = "pos_" + std::to_string(simid) + ".bin";
 
     // If s == 0, remove the existing file
-    if (s == 0) {
-        std::remove(filename.c_str());
-    }
+//    if (s == 0) {
+//        std::remove(filename.c_str());
+//    }
 
     // Open the file in binary mode and append mode
     std::ofstream out(filename, std::ios::binary | std::ios::app);
@@ -537,4 +537,34 @@ void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions
     {
         std::cout << "Unable to open file";
     }
+}
+
+std::vector<double> readPositionFrame(int simid, int i) {
+    // Build the filename
+    std::string filename = "pos_" + std::to_string(simid) + ".bin";
+
+    // Open the file
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Unable to open file " << filename << std::endl;
+        return {};
+    }
+
+    // Each dataset consists of 131072 doubles
+    const size_t dataSize = 2*256*256;
+    const size_t bytesPerDouble = sizeof(double);
+
+    // Seek to the i-th dataset
+    file.seekg(i * dataSize * bytesPerDouble, file.beg);
+
+    // Create a vector to hold the data
+    std::vector<double> data(dataSize);
+
+    // Read the data
+    file.read(reinterpret_cast<char*>(data.data()), dataSize * bytesPerDouble);
+
+    // Close the file
+    file.close();
+
+    return data;
 }

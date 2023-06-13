@@ -122,5 +122,7 @@ std::vector<double> readBinaryFile(const std::string& filename) ;
 
 void writeCollisions(const std::vector<std::tuple<int, int, double>>& collisions, int simid, int checkpointid);
 
+std::vector<double> readPositionFrame(int simid, int i);
+
 
 #endif

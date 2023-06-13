@@ -4,6 +4,25 @@
 #include <vector>
 #include "edmd_functions.hpp"
 
+__device__ void print_from_gpu(double* d_xs, double* d_ys, double *d_L, int* d_particle2cellflat, int* d_cell2particleflat, double* d_bins, int* d_hist, int *d_numbins, int *d_lengthpercell, int *ncells, long long *num, int *d_neighbors)
+{
+    printf("d_xs[0] = %.17g\n",d_xs[0]);
+    printf("d_ys[0] = %.17g\n",d_ys[0]);
+    printf("*d_L = %.17g\n",*d_L);
+    printf("d_particle2cellflat[0] = %d\n",d_particle2cellflat[0]);
+    printf("d_cell2particleflat[0] = %d\n",d_cell2particleflat[0]);
+    printf("d_bins[0] = %.17g\n",d_bins[0]);
+    printf("d_hist[0] = %d\n",d_hist[0]);
+    printf("*d_numbins = %d\n",*d_numbins);
+    printf("*d_lengthpercell = %d\n",*d_lengthpercell);
+    printf("*ncells = %d\n",*ncells);
+    printf("*num = %lld\n",*num);
+    printf("d_neighbors[0] = %d\n",d_neighbors[0]);
+
+    // int *d_lengthpercell, int *ncells, long long *num, int *d_neighbors
+
+}
+
 std::vector<int> flattenCell2Particle(const std::unordered_map<std::pair<int, int>, std::vector<int>>& cell2particle, int ncells, double cellsize) {
     // Calculate the length of each cell stretch in the flat vector
     int lengthpercell = std::ceil(cellsize * cellsize / (2 * std::sqrt(3)));
@@ -136,8 +155,11 @@ __device__ void computeSPHistogram(double* d_xs, double* d_ys, double *d_L, int 
 
 __global__ void compHistFrame(double* d_xs, double* d_ys, double *d_L, int* d_particle2cellflat, int* d_cell2particleflat, double* d_bins, int* d_hist, int *d_numbins, int *d_lengthpercell, int *ncells, long long *num, int *d_neighbors)
 {
+    
+    
     // Calculate the global index
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    // if (idx==2)printf("Called kernel.\n");
 
     // Ensure we do not go out of bounds
     if(idx < *num) {
@@ -147,28 +169,34 @@ __global__ void compHistFrame(double* d_xs, double* d_ys, double *d_L, int* d_pa
         // Compute neighbor indices
         int neighinds[9];
         computeNeighborIndices(neighinds, d_particle2cellflat[idx], *ncells);
+        // if (idx==2) for(int i = 0;i<9;i++) printf("neighinds[%d] = %d\n",i,neighinds[i]);
 
         // Compute neighbors
         
         getNeighborParticles(d_neighbors, d_cell2particleflat, neighinds, idx, *d_lengthpercell, *ncells);
+        // if (idx==2) for(int i = 0;i<9*(*d_lengthpercell);i++) printf("d_neighbors[%d] = %d\n",i,d_neighbors[i]);
 
         // Call the device function to compute the histogram
         computeSPHistogram(d_xs, d_ys, d_L, idx, d_neighbors, d_bins, offset, d_hist, d_numbins, d_lengthpercell);
+        // if(idx == 1) print_from_gpu(d_xs, d_ys, d_L, d_particle2cellflat, d_cell2particleflat, d_bins,d_hist, d_numbins, d_lengthpercell, ncells, num, d_neighbors);
+        
     }
 }
 
-__global__ void collapseHist(int* d_hist, int* d_counts, int *numbins, int *d_total_frames)
+void collapseHist(std::vector<int> &hist, std::vector<int> &counts, int numbins, int total_frames)
 {
     // Loop over bins
-    for(int i = 0; i < (*numbins)-1; ++i) 
+    for(int i = 0; i < numbins-1; ++i) 
     {
         // Accumulate over frames
-        for(int j = 0; j < (*d_total_frames); ++j) 
+        for(int j = 0; j < total_frames; ++j) 
         {
-            d_counts[i] += d_hist[j*((*numbins)-1) + i];
+            counts[i] += hist[j*(numbins-1) + i];
         }
     }
 }
+
+
 
 
 
@@ -223,9 +251,9 @@ int main(int argc, char* argv[])
     std::string filename = "pos_"+std::to_string(simid)+".bin";
 
     const int start_frame = 20000;
-    const int end_frame = 20010;
+    const int end_frame = 20100;
     int total_frames = end_frame - start_frame;
-    int gpuhistsize = total_frames * (numbins-1);
+    long long gpuhistsize = num *(numbins-1);
     std::vector<int> hist(gpuhistsize,0);
     int lengthpercell = std::ceil(cellsize * cellsize / (2 * std::sqrt(3)));
 
@@ -252,6 +280,8 @@ int main(int argc, char* argv[])
     
     for(int frame=start_frame;frame<end_frame;frame++)
     {
+        std::cout << frame << std::endl;
+        
         std::vector<double> data = readPositionFrame(simid, frame);
         numpairs += num*(num-1);
 
@@ -319,23 +349,16 @@ int main(int argc, char* argv[])
 
         // Call the kernel function
         compHistFrame<<<numBlocks, threadsPerBlock>>>(d_xs, d_ys, d_L, d_particle2cellflat, d_cell2particleflat, d_bins, d_hist, d_numbins, d_lengthpercell, d_ncells, d_num,d_neighbors);
+        cudaDeviceSynchronize();
+
+
 
     }
-    std::vector<int> longhist((numbins-1)*num);
-    cudaMemcpy(longhist.data(), d_hist, longhist.size() * sizeof(int), cudaMemcpyDeviceToHost);
     
-    // collapseHist<<<1,1>>>(d_hist,d_counts, d_numbins, d_total_frames);
+    cudaMemcpy(hist.data(), d_hist, hist.size() * sizeof(int), cudaMemcpyDeviceToHost);
+    collapseHist(hist, counts, numbins, total_frames);
 
-
-    // cudaMemcpy(counts.data(), d_counts, counts.size() * sizeof(int), cudaMemcpyDeviceToHost);
-
-    for(int i = 0; i< longhist.size();i++) std::cout << longhist[i] << std::endl;
-
-
-
-
-
-
+    for(int i = 0; i< counts.size();i++) std::cout << counts[i] << std::endl;
 
     cudaFree(d_cell2particleflat); 
     cudaFree(d_particle2cellflat);
@@ -350,6 +373,14 @@ int main(int argc, char* argv[])
     cudaFree(d_num);
     cudaFree(d_counts);
     cudaFree(d_total_frames);
+
+
+
+
+
+
+
+    
 
 }
 

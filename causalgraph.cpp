@@ -198,10 +198,10 @@ std::vector<long long> computeBallVolumes(const std::vector<std::tuple<int, int>
     std::vector<long long> ballvolumes(num_nodes);
 
     std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,num_nodes);
-
-    std::vector<int>& neighbors0 = adjacencyMap[0];
-    for (const auto& neighbor : neighbors0) std::cout << neighbor << " ";
-    std::cout << std::endl;
+    // for(int i = 0;i<num_nodes;i++) std::cout << (adjacencyMap[i].size()>2) << std::endl;
+    // std::vector<int>& neighbors0 = adjacencyMap[7];
+    // for (const auto& neighbor : neighbors0) std::cout << neighbor << " ";
+    // std::cout << std::endl;
 
 
 
@@ -222,9 +222,10 @@ std::vector<long long> computeBallVolumes(const std::vector<std::tuple<int, int>
             nqueue_elements.erase(y);
             
             auto neighs = adjacencyMap[y];
- 
+           
             for (const auto& n : neighs) 
             {
+
                 if (ndepths.find(n) == ndepths.end()) {
                     ndepths[n] = ndepths[y] + 1;
                     
@@ -251,24 +252,46 @@ std::vector<long long> computeBallVolumes(const std::vector<std::tuple<int, int>
 
 int main() {
 
-    std::string filename = "graphvolcolls.txt"; 
+    std::string filename = "collisions_simid6_chckpt799.txt"; 
+    std::cout << "Collisions read from "<<filename <<std::endl;
     std::vector<std::tuple<int, int, double>> collisions = readCollisions(filename);
     // for (int i = 0; i< collisions.size();i++) std::cout << std::get<0>(collisions[i]) <<", "<<std::get<1>(collisions[i]) <<", "<<std::get<2>(collisions[i]) << std::endl;
 
-    long long num = 15;
+    long long num = 256*256;
+    
     int numthreads = 3;
+
+
+    std::cout  << "num = " << num <<std::endl;
 
     // std::vector<std::tuple<int, int>> edgelist = genCausalGraph(collisions, num,numthreads);
     // std::cout << "Causal graph constructed." << std::endl;
 
     // writeCausalGraphToFile(edgelist, "cg_graphvoltest.bin");
+    std::string cgfilename = "cg_simid6_chckpt799.bin"; 
+    std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile(cgfilename);
+    std::cout << "Causal graph read from read from "<<cgfilename <<std::endl;
 
-    std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile("cg_graphvoltest.bin");
+
+    std::vector<double> avg;
+    double temp;
+    std::vector<long long> Vrx;
+    // std::cout << edgelist.size() << std::endl;
+    
+    for(int r = 0; r < 10;r++)
+    {
+        std::cout << "Computing <V_"<<r<<">" << std::endl;
+        temp = 0.0;
+        Vrx = computeBallVolumes(edgelist, r, collisions.size());
+        for (int i = 0;i<collisions.size();i++) temp+=Vrx[i];
+        temp/=collisions.size();
+        avg.push_back(temp);
+    }
+
+    for(int i = 0; i< avg.size();i++) std::cout << avg[i] << std::endl;
 
     
-    // std::cout << edgelist.size() << std::endl;
-    std::vector<long long> Vrx = computeBallVolumes(edgelist, 5, collisions.size());
-    for (int i = 0;i<collisions.size();i++) std::cout << std::get<0>(collisions[i]) << " " <<std::get<1>(collisions[i]) << " " <<std::get<2>(collisions[i]) << "\t" << Vrx[i]<<std::endl;
+    // for (int i = 0;i<collisions.size();i++) std::cout << std::get<0>(collisions[i]) << " " <<std::get<1>(collisions[i]) << " " <<std::get<2>(collisions[i]) << "\t" << Vrx[i]<<std::endl;
 
     // for(int i= 0;i<edgelist.size();i++) std::cout << std::get<0>(edgelist[i]) << "\t" << std::get<1>(edgelist[i])<<std::endl;
 

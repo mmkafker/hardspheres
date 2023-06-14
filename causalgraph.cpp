@@ -332,6 +332,39 @@ std::unordered_map<int, std::vector<int>> getAllNodesAtDistance(std::unordered_m
     return nodes_at_distance_s;
 }
 
+double compCausalGraphCF(const std::vector<std::tuple<int, int>>& edgelist, std::unordered_map<int, std::vector<int>>& adjacencyMap, int r, int s, long long num_nodes, int numthreads) 
+{
+    std::vector<int> ballVolumes = computeBallVolumes(edgelist, r, num_nodes, numthreads);
+
+    // Compute average of ball volumes
+    double sumVolumes = 0.0;
+    for (int volume : ballVolumes) sumVolumes += volume;
+    double avgVolumes = sumVolumes / num_nodes; // <V_r>
+
+    // Compute neighbors at distance s
+    std::unordered_map<int, std::vector<int>> neighbors_at_s = getAllNodesAtDistance(adjacencyMap, s, num_nodes, numthreads);
+
+    // Compute average of products V_r(x)*V_r(y)
+    double sumProducts = 0.0;
+    long long count = 0;
+    for (int x = 0; x < num_nodes; ++x) 
+    {
+        const auto& neighbors = neighbors_at_s[x];
+        for (int i = 0; i < neighbors.size(); ++i) 
+        {
+            int y = neighbors[i];
+            sumProducts += ballVolumes[x] * ballVolumes[y];
+            count++;
+        }
+    }
+
+    double avgProducts = sumProducts / count; // <V_r(x)V_r(y)>
+
+    // Compute and return S_r(s)
+    return (avgProducts - avgVolumes * avgVolumes) / (avgVolumes * avgVolumes);
+}
+
+
 
 
 
@@ -370,7 +403,10 @@ int main() {
 
     std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,collisions.size());
 
-    std::unordered_map<int, std::vector<int>> neighs_s = getAllNodesAtDistance(adjacencyMap, 4, collisions.size(),numthreads);
+    double cgcf = compCausalGraphCF(edgelist, adjacencyMap, 4, 10, collisions.size(), numthreads);
+    std::cout << cgcf <<std::endl;
+
+    // std::unordered_map<int, std::vector<int>> neighs_s = getAllNodesAtDistance(adjacencyMap, 4, collisions.size(),numthreads);
 
     // for(int i = 0;i<collisions.size();i++) std::cout << i <<"\t"<< neighs_s[i].size() <<std::endl;
     // std::vector<int> neigh_s_0 = getNodesAtDistance(adjacencyMap, 4, 141);
@@ -379,11 +415,11 @@ int main() {
 
     // std::vector<int> neigh_s_2 = getNodesAtDistance(adjacencyMap, 4, 236);
     // std::cout << "\n" <<std::endl;
-    for(int i = 0;i<neighs_s[141].size();i++) std::cout << std::get<0>(collisions[neighs_s[141][i]]) << ", " <<std::get<1>(collisions[neighs_s[141][i]]) << ", " <<std::get<2>(collisions[neighs_s[141][i]])<< std::endl;
-    std::cout << "\n" <<std::endl;
-    for(int i = 0;i<neighs_s[325].size();i++) std::cout << std::get<0>(collisions[neighs_s[325][i]]) << ", " <<std::get<1>(collisions[neighs_s[325][i]]) << ", " <<std::get<2>(collisions[neighs_s[325][i]])<< std::endl;
-    std::cout << "\n" <<std::endl;
-    for(int i = 0;i<neighs_s[236].size();i++) std::cout << std::get<0>(collisions[neighs_s[236][i]]) << ", " <<std::get<1>(collisions[neighs_s[236][i]]) << ", " <<std::get<2>(collisions[neighs_s[236][i]])<< std::endl;
+    // for(int i = 0;i<neighs_s[141].size();i++) std::cout << std::get<0>(collisions[neighs_s[141][i]]) << ", " <<std::get<1>(collisions[neighs_s[141][i]]) << ", " <<std::get<2>(collisions[neighs_s[141][i]])<< std::endl;
+    // std::cout << "\n" <<std::endl;
+    // for(int i = 0;i<neighs_s[325].size();i++) std::cout << std::get<0>(collisions[neighs_s[325][i]]) << ", " <<std::get<1>(collisions[neighs_s[325][i]]) << ", " <<std::get<2>(collisions[neighs_s[325][i]])<< std::endl;
+    // std::cout << "\n" <<std::endl;
+    // for(int i = 0;i<neighs_s[236].size();i++) std::cout << std::get<0>(collisions[neighs_s[236][i]]) << ", " <<std::get<1>(collisions[neighs_s[236][i]]) << ", " <<std::get<2>(collisions[neighs_s[236][i]])<< std::endl;
     
 
 

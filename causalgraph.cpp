@@ -157,92 +157,88 @@ std::unordered_map<int, std::vector<int>> createAdjacencyMap(const std::vector<s
     return adjacencyMap;
 }
 
-std::unordered_map<int, std::unordered_set<int>> createExclusiveNextToAdjacencyMap(const std::unordered_map<int, std::vector<int>>& adjacencyMap) {
-    std::unordered_map<int, std::unordered_set<int>> nextToAdjacencyMap;
 
-    // For each node in the adjacency map
-    for (const auto& item : adjacencyMap) {
-        int node = item.first;
-        const std::vector<int>& neighbors = item.second;
+int computeSingleBallVolume(std::unordered_map<int, std::vector<int>>& adjacencyMap, int r, long long x) {
+    std::queue<long long> nqueue;
+    std::unordered_map<long long, long long> ndepths;
+    std::unordered_set<long long> nqueue_elements;
 
-        // Initialize an empty set to store nodes at a graph distance of 2
-        std::unordered_set<int> nextToNeighbors;
+    nqueue.push(x);
+    nqueue_elements.insert(x);
+    ndepths[x] = 0;
 
-        // For each neighbor of the current node
-        for (const int& neighbor : neighbors) {
+    int ballvol = 1;
+    while (!nqueue.empty()) 
+    {
+        long long y = nqueue.front();
+        nqueue.pop();
+        nqueue_elements.erase(y);
 
-            // For each neighbor of the neighbor (i.e., next-to-neighbor of the current node)
-            for (const int& nextToNeighbor : adjacencyMap.at(neighbor)) {
-                nextToNeighbors.insert(nextToNeighbor);
-            }
-        }
+        auto neighs = adjacencyMap[y];
 
-        // Remove direct neighbors from the set of next-to-neighbors
-        for (const int& neighbor : neighbors) {
-            nextToNeighbors.erase(neighbor);
-        }
+        for (const auto& n : neighs) 
+        {
+            if (ndepths.find(n) == ndepths.end()) {
+                ndepths[n] = ndepths[y] + 1;
 
-        // Save the set of next-to-neighbors for the current node in the next-to-adjacency map
-        nextToAdjacencyMap[node] = nextToNeighbors;
-    }
+                if (ndepths[n] <= r) {
+                    ballvol++;
 
-    return nextToAdjacencyMap;
-}
-
-
-
-
-
-
-std::vector<long long> computeBallVolumes(const std::vector<std::tuple<int, int>>& edgelist, long long r, long long num_nodes) {
-    std::vector<long long> ballvolumes(num_nodes);
-
-    std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,num_nodes);
-    // for(int i = 0;i<num_nodes;i++) std::cout << (adjacencyMap[i].size()>2) << std::endl;
-    // std::vector<int>& neighbors0 = adjacencyMap[7];
-    // for (const auto& neighbor : neighbors0) std::cout << neighbor << " ";
-    // std::cout << std::endl;
-
-
-
-    for (long long x = 0; x < num_nodes; x++) {
-
-        std::queue<long long> nqueue;
-        std::unordered_map<long long, long long> ndepths;
-        std::unordered_set<long long> nqueue_elements;
-
-        nqueue.push(x);
-        nqueue_elements.insert(x);
-        ndepths[x] = 0;
-        
-        long long ballvol = 1;
-        while (!nqueue.empty()) {
-            long long y = nqueue.front();
-            nqueue.pop();
-            nqueue_elements.erase(y);
-            
-            auto neighs = adjacencyMap[y];
-           
-            for (const auto& n : neighs) 
-            {
-
-                if (ndepths.find(n) == ndepths.end()) {
-                    ndepths[n] = ndepths[y] + 1;
-                    
-                    if (ndepths[n] <= r) {
-                        ballvol++;
-                        
-                        if (nqueue_elements.find(n) == nqueue_elements.end()) {
-                            nqueue.push(n);
-                            nqueue_elements.insert(n);
-                        }
+                    if (nqueue_elements.find(n) == nqueue_elements.end()) {
+                        nqueue.push(n);
+                        nqueue_elements.insert(n);
                     }
                 }
             }
-
         }
-        ballvolumes[x] = ballvol;
     }
+
+    return ballvol;
+}
+
+// std::vector<int> computeBallVolumes(const std::vector<std::tuple<int, int>>& edgelist, int r, long long num_nodes) {
+//     std::vector<int> ballvolumes(num_nodes);
+//     std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,num_nodes);
+
+//     for (long long x = 0; x < num_nodes; x++) {
+//         ballvolumes[x] = computeSingleBallVolume(adjacencyMap, r, x);
+//     }
+
+//     return ballvolumes;
+// }
+
+void computeChunkBallVolumes(int start, int end, std::unordered_map<int, std::vector<int>>& adjacencyMap, int r, std::vector<int>& ballvolumes) {
+    for (long long x = start; x < end; x++) {
+        ballvolumes[x] = computeSingleBallVolume(adjacencyMap, r, x);
+    }
+}
+
+std::vector<int> computeBallVolumes(const std::vector<std::tuple<int, int>>& edgelist, int r, long long num_nodes, int numthreads) {
+    std::vector<int> ballvolumes(num_nodes);
+    std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,num_nodes);
+
+    std::vector<std::thread> threads;
+    long long chunkSize = num_nodes / numthreads;
+    long long remainder = num_nodes % numthreads;
+
+    for (int t = 0; t < numthreads; ++t) {
+        int extra = 0;
+        for(int j = 0; j < t; ++j)
+        {
+            if (j < remainder)
+                extra++;
+        }
+
+        long long start = t * chunkSize + extra;
+        long long end = start + chunkSize + (t < remainder ? 1 : 0);
+
+        threads.push_back(std::thread(computeChunkBallVolumes, start, end, std::ref(adjacencyMap), r, std::ref(ballvolumes)));
+    }
+
+    for (auto& th : threads) {
+        th.join();
+    }
+
     return ballvolumes;
 }
 
@@ -250,16 +246,116 @@ std::vector<long long> computeBallVolumes(const std::vector<std::tuple<int, int>
 
 
 
+
+
+
+
+std::vector<int> getNodesAtDistance(std::unordered_map<int, std::vector<int>>& adjacencyMap, int s, long long x) {
+    std::queue<long long> nqueue;
+    std::unordered_map<long long, long long> ndepths;
+    std::unordered_set<long long> nqueue_elements;
+
+    nqueue.push(x);
+    nqueue_elements.insert(x);
+    ndepths[x] = 0;
+
+    while (!nqueue.empty()) 
+    {
+        long long y = nqueue.front();
+        nqueue.pop();
+        nqueue_elements.erase(y);
+
+        auto neighs = adjacencyMap[y];
+
+        for (const auto& n : neighs) 
+        {
+            if (ndepths.find(n) == ndepths.end()) {
+                ndepths[n] = ndepths[y] + 1;
+
+                if (ndepths[n] <= s) {  // Change r to s
+                    if (nqueue_elements.find(n) == nqueue_elements.end()) {
+                        nqueue.push(n);
+                        nqueue_elements.insert(n);
+                    }
+                }
+            }
+        }
+    }
+
+    // Extract nodes at exactly distance s
+    std::vector<int> nodes_at_s;
+    for (const auto& [node, depth] : ndepths) {
+        if (depth == s) {
+            nodes_at_s.push_back(node);
+        }
+    }
+
+    return nodes_at_s;
+}
+
+
+void computeChunkNodesAtDistance(int start, int end, std::unordered_map<int, std::vector<int>>& adjacencyMap, int s, std::unordered_map<int, std::vector<int>>& nodes_at_distance_s) {
+    for (long long x = start; x < end; x++) {
+        auto nodes_at_s = getNodesAtDistance(adjacencyMap, s, x);
+        
+        mtx.lock();
+        nodes_at_distance_s[x] = nodes_at_s;
+        mtx.unlock();
+    }
+}
+
+std::unordered_map<int, std::vector<int>> getAllNodesAtDistance(std::unordered_map<int, std::vector<int>>& adjacencyMap, int s, long long num_nodes, int numthreads) {
+    std::unordered_map<int, std::vector<int>> nodes_at_distance_s;
+
+    std::vector<std::thread> threads;
+    long long chunkSize = num_nodes / numthreads;
+    long long remainder = num_nodes % numthreads;
+
+    for (int t = 0; t < numthreads; ++t) {
+        int extra = 0;
+        for(int j = 0; j < t; ++j)
+        {
+            if (j < remainder)
+                extra++;
+        }
+
+        long long start = t * chunkSize + extra;
+        long long end = start + chunkSize + (t < remainder ? 1 : 0);
+
+        threads.push_back(std::thread(computeChunkNodesAtDistance, start, end, std::ref(adjacencyMap), s, std::ref(nodes_at_distance_s)));
+    }
+
+    for (auto& th : threads) {
+        th.join();
+    }
+
+    return nodes_at_distance_s;
+}
+
+
+
+
+
+
+
+
+// 
+
+
+
+
+
 int main() {
 
-    std::string filename = "collisions_simid6_chckpt799.txt"; 
+    std::string filename = "graphvolcolls.txt";//"collisions_simid6_chckpt799.txt"; 
     std::cout << "Collisions read from "<<filename <<std::endl;
     std::vector<std::tuple<int, int, double>> collisions = readCollisions(filename);
     // for (int i = 0; i< collisions.size();i++) std::cout << std::get<0>(collisions[i]) <<", "<<std::get<1>(collisions[i]) <<", "<<std::get<2>(collisions[i]) << std::endl;
 
-    long long num = 256*256;
+    long long num = 15;//256*256;
     
-    int numthreads = 3;
+    int numthreads = 10;
+    std::cout << "Using "<<numthreads<<" threads."<<std::endl;
 
 
     std::cout  << "num = " << num <<std::endl;
@@ -268,27 +364,47 @@ int main() {
     // std::cout << "Causal graph constructed." << std::endl;
 
     // writeCausalGraphToFile(edgelist, "cg_graphvoltest.bin");
-    std::string cgfilename = "cg_simid6_chckpt799.bin"; 
+    std::string cgfilename = "cg_graphvoltest.bin";//"cg_simid6_chckpt799.bin"; 
     std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile(cgfilename);
     std::cout << "Causal graph read from read from "<<cgfilename <<std::endl;
 
+    std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,collisions.size());
 
-    std::vector<double> avg;
-    double temp;
-    std::vector<long long> Vrx;
-    // std::cout << edgelist.size() << std::endl;
+    std::unordered_map<int, std::vector<int>> neighs_s = getAllNodesAtDistance(adjacencyMap, 4, collisions.size(),numthreads);
+
+    // for(int i = 0;i<collisions.size();i++) std::cout << i <<"\t"<< neighs_s[i].size() <<std::endl;
+    // std::vector<int> neigh_s_0 = getNodesAtDistance(adjacencyMap, 4, 141);
+
+    // std::vector<int> neigh_s_1 = getNodesAtDistance(adjacencyMap, 4, 325);
+
+    // std::vector<int> neigh_s_2 = getNodesAtDistance(adjacencyMap, 4, 236);
+    // std::cout << "\n" <<std::endl;
+    for(int i = 0;i<neighs_s[141].size();i++) std::cout << std::get<0>(collisions[neighs_s[141][i]]) << ", " <<std::get<1>(collisions[neighs_s[141][i]]) << ", " <<std::get<2>(collisions[neighs_s[141][i]])<< std::endl;
+    std::cout << "\n" <<std::endl;
+    for(int i = 0;i<neighs_s[325].size();i++) std::cout << std::get<0>(collisions[neighs_s[325][i]]) << ", " <<std::get<1>(collisions[neighs_s[325][i]]) << ", " <<std::get<2>(collisions[neighs_s[325][i]])<< std::endl;
+    std::cout << "\n" <<std::endl;
+    for(int i = 0;i<neighs_s[236].size();i++) std::cout << std::get<0>(collisions[neighs_s[236][i]]) << ", " <<std::get<1>(collisions[neighs_s[236][i]]) << ", " <<std::get<2>(collisions[neighs_s[236][i]])<< std::endl;
     
-    for(int r = 0; r < 10;r++)
-    {
-        std::cout << "Computing <V_"<<r<<">" << std::endl;
-        temp = 0.0;
-        Vrx = computeBallVolumes(edgelist, r, collisions.size());
-        for (int i = 0;i<collisions.size();i++) temp+=Vrx[i];
-        temp/=collisions.size();
-        avg.push_back(temp);
-    }
 
-    for(int i = 0; i< avg.size();i++) std::cout << avg[i] << std::endl;
+
+
+
+    // std::vector<double> avg;
+    // double temp;
+    // std::vector<int> Vrx;
+    // // std::cout << edgelist.size() << std::endl;
+    
+    // for(int r = 0; r < 20;r++)
+    // {
+    //     std::cout << "Computing <V_"<<r<<">" << std::endl;
+    //     temp = 0.0;
+    //     Vrx = computeBallVolumes(edgelist, r, collisions.size(),numthreads);
+    //     for (int i = 0;i<collisions.size();i++) temp+=Vrx[i];
+    //     temp/=collisions.size();
+    //     avg.push_back(temp);
+    // }
+
+    // for(int i = 0; i< avg.size();i++) std::cout << avg[i] << std::endl;
 
     
     // for (int i = 0;i<collisions.size();i++) std::cout << std::get<0>(collisions[i]) << " " <<std::get<1>(collisions[i]) << " " <<std::get<2>(collisions[i]) << "\t" << Vrx[i]<<std::endl;
@@ -318,3 +434,68 @@ int main() {
 //     } else {
 //     std::cout << "The two vectors are not identical." << std::endl;
 //     }
+
+
+// std::vector<long long> computeBallVolumes(const std::vector<std::tuple<int, int>>& edgelist, long long r, long long num_nodes) {
+//     std::vector<long long> ballvolumes(num_nodes);
+
+//     std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,num_nodes);
+//     // for(int i = 0;i<num_nodes;i++) std::cout << (adjacencyMap[i].size()>2) << std::endl;
+//     // std::vector<int>& neighbors0 = adjacencyMap[7];
+//     // for (const auto& neighbor : neighbors0) std::cout << neighbor << " ";
+//     // std::cout << std::endl;
+
+
+
+//     for (long long x = 0; x < num_nodes; x++) {
+
+//         std::queue<long long> nqueue;
+//         std::unordered_map<long long, long long> ndepths;
+//         std::unordered_set<long long> nqueue_elements;
+
+//         nqueue.push(x);
+//         nqueue_elements.insert(x);
+//         ndepths[x] = 0;
+        
+//         long long ballvol = 1;
+//         while (!nqueue.empty()) {
+//             long long y = nqueue.front();
+//             nqueue.pop();
+//             nqueue_elements.erase(y);
+            
+//             auto neighs = adjacencyMap[y];
+           
+//             for (const auto& n : neighs) 
+//             {
+
+//                 if (ndepths.find(n) == ndepths.end()) {
+//                     ndepths[n] = ndepths[y] + 1;
+                    
+//                     if (ndepths[n] <= r) {
+//                         ballvol++;
+                        
+//                         if (nqueue_elements.find(n) == nqueue_elements.end()) {
+//                             nqueue.push(n);
+//                             nqueue_elements.insert(n);
+//                         }
+//                     }
+//                 }
+//             }
+
+//         }
+//         ballvolumes[x] = ballvol;
+//     }
+//     return ballvolumes;
+// }
+
+// std::unordered_map<int, std::vector<int>> getAllNodesAtDistance(std::unordered_map<int, std::vector<int>>& adjacencyMap, int s, long long num_nodes) {
+//     std::unordered_map<int, std::vector<int>> nodes_at_distance_s;
+
+//     // Iterate over all nodes
+//     for (long long x = 0; x < num_nodes; x++) {
+//         // Compute nodes at distance s from x and store in the map
+//         nodes_at_distance_s[x] = getNodesAtDistance(adjacencyMap, s, x);
+//     }
+
+//     return nodes_at_distance_s;
+// }

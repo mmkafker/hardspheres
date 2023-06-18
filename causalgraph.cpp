@@ -380,31 +380,37 @@ double compCausalGraphCF(const std::vector<std::tuple<int, int>>& edgelist, std:
 
 int main() {
 
-    std::string filename = "graphvolcolls.txt";//"collisions_simid6_chckpt799.txt"; 
+    std::string filename = "collisions_simid6_chckpt799.txt";//"graphvolcolls.txt";// 
     std::cout << "Collisions read from "<<filename <<std::endl;
     std::vector<std::tuple<int, int, double>> collisions = readCollisions(filename);
     // for (int i = 0; i< collisions.size();i++) std::cout << std::get<0>(collisions[i]) <<", "<<std::get<1>(collisions[i]) <<", "<<std::get<2>(collisions[i]) << std::endl;
 
-    long long num = 15;//256*256;
+    long long num = 256*256;
     
-    int numthreads = 10;
+    int numthreads = 60;
     std::cout << "Using "<<numthreads<<" threads."<<std::endl;
 
 
     std::cout  << "num = " << num <<std::endl;
 
-    // std::vector<std::tuple<int, int>> edgelist = genCausalGraph(collisions, num,numthreads);
-    // std::cout << "Causal graph constructed." << std::endl;
+    std::vector<std::tuple<int, int>> edgelist = genCausalGraph(collisions, num,numthreads);
+    std::cout << "Causal graph constructed." << std::endl;
 
-    // writeCausalGraphToFile(edgelist, "cg_graphvoltest.bin");
-    std::string cgfilename = "cg_graphvoltest.bin";//"cg_simid6_chckpt799.bin"; 
-    std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile(cgfilename);
-    std::cout << "Causal graph read from read from "<<cgfilename <<std::endl;
+    writeCausalGraphToFile(edgelist, "cg_simid6_chckpt799.bin");
+    // std::string cgfilename = "cg_simid6_chckpt799.bin"; //"cg_graphvoltest.bin";//
+    // std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile(cgfilename);
+    // std::cout << "Causal graph read from read from "<<cgfilename <<std::endl;
 
     std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,collisions.size());
 
-    double cgcf = compCausalGraphCF(edgelist, adjacencyMap, 4, 10, collisions.size(), numthreads);
-    std::cout << cgcf <<std::endl;
+    for(int r = 1; r < 12; r++)
+    {
+        for(int s = 0;s<12;s++)
+        {
+            double cgcf = compCausalGraphCF(edgelist, adjacencyMap, r, s, collisions.size(), numthreads);
+            std::cout << "r "<<r<<", s "<<s <<", CGCF " <<cgcf <<std::endl;
+        }
+    }
 
     // std::unordered_map<int, std::vector<int>> neighs_s = getAllNodesAtDistance(adjacencyMap, 4, collisions.size(),numthreads);
 

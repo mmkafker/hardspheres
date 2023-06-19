@@ -98,11 +98,11 @@ int main(int argc, char* argv[]) {
     int numsamplepairs = 10*num;
 
     std::vector<int> frames;
-    for(int frame = 0;frame<34000;frame+=500) frames.push_back(frame);
+    for(int frame = 0;frame<34500;frame+=500) frames.push_back(frame);
 
     for(int frameind = 40; frameind<frames.size();frameind++)
     {
-        std::cout << frameind << std::endl;
+        // std::cout << frameind << std::endl;
         int frame = frames[frameind];
 
         std::vector<double> data = readPositionFrame(simid, frame);

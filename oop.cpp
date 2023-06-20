@@ -171,10 +171,10 @@ int main(int argc, char* argv[]) {
 
     double L = std::atof(argv[2]);  // atof converts C-string to double
 
-    std::remove("density.bin");
-    std::remove("cellcenters.bin");
-    std::remove("ncells.bin");
-    std::remove("psis.bin");
+    // std::remove("density.bin");
+    // std::remove("cellcenters.bin");
+    // std::remove("ncells.bin");
+    // std::remove("psis.bin");
 
 
     

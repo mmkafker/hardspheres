@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <chrono>
+#include <cmath>
 
 std::mutex mtx;
 
@@ -381,78 +382,53 @@ double compCausalGraphCF(const std::vector<std::tuple<int, int>>& edgelist, std:
 int main() {
 
     std::string filename = "collisions_simid6_chckpt799.txt";//"graphvolcolls.txt";// 
-    std::cout << "Collisions read from "<<filename <<std::endl;
+    // std::cout << "Collisions read from "<<filename <<std::endl;
     std::vector<std::tuple<int, int, double>> collisions = readCollisions(filename);
     // for (int i = 0; i< collisions.size();i++) std::cout << std::get<0>(collisions[i]) <<", "<<std::get<1>(collisions[i]) <<", "<<std::get<2>(collisions[i]) << std::endl;
 
     long long num = 256*256;
     
     int numthreads = 60;
-    std::cout << "Using "<<numthreads<<" threads."<<std::endl;
+    // std::cout << "Using "<<numthreads<<" threads."<<std::endl;
 
 
-    std::cout  << "num = " << num <<std::endl;
+    // std::cout  << "num = " << num <<std::endl;
 
-    std::vector<std::tuple<int, int>> edgelist = genCausalGraph(collisions, num,numthreads);
-    std::cout << "Causal graph constructed." << std::endl;
+    // std::vector<std::tuple<int, int>> edgelist = genCausalGraph(collisions, num,numthreads);
+    // std::cout << "Causal graph constructed." << std::endl;
 
-    writeCausalGraphToFile(edgelist, "cg_simid6_chckpt799.bin");
-    // std::string cgfilename = "cg_simid6_chckpt799.bin"; //"cg_graphvoltest.bin";//
-    // std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile(cgfilename);
+
+
+    // writeCausalGraphToFile(edgelist, "cg_simid6_chckpt799.bin");
+    std::string cgfilename = "cg_simid6_chckpt799.bin"; //"cg_graphvoltest.bin";//
+    std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile(cgfilename);
     // std::cout << "Causal graph read from read from "<<cgfilename <<std::endl;
 
     std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,collisions.size());
 
-    for(int r = 1; r < 12; r++)
+    for (int r = 2; r< 13; r++)
     {
-        for(int s = 0;s<12;s++)
+        std::vector<int> ballVolumes = computeBallVolumes(edgelist, r, collisions.size(), numthreads);
+        double mean = 0.0; double stdev = 0.0;
+        for(int i = 0;i<ballVolumes.size();i++)
         {
-            double cgcf = compCausalGraphCF(edgelist, adjacencyMap, r, s, collisions.size(), numthreads);
-            std::cout << "r "<<r<<", s "<<s <<", CGCF " <<cgcf <<std::endl;
+            mean += ballVolumes[i];
+            stdev+= ballVolumes[i]*ballVolumes[i];
         }
+        mean/=ballVolumes.size();
+        stdev/=ballVolumes.size();
+        stdev-=mean*mean;
+        stdev = std::sqrt(stdev);
+        std::cout << r <<"\t" <<mean<<"\t"<<stdev<<std::endl;
+
     }
-
-    // std::unordered_map<int, std::vector<int>> neighs_s = getAllNodesAtDistance(adjacencyMap, 4, collisions.size(),numthreads);
-
-    // for(int i = 0;i<collisions.size();i++) std::cout << i <<"\t"<< neighs_s[i].size() <<std::endl;
-    // std::vector<int> neigh_s_0 = getNodesAtDistance(adjacencyMap, 4, 141);
-
-    // std::vector<int> neigh_s_1 = getNodesAtDistance(adjacencyMap, 4, 325);
-
-    // std::vector<int> neigh_s_2 = getNodesAtDistance(adjacencyMap, 4, 236);
-    // std::cout << "\n" <<std::endl;
-    // for(int i = 0;i<neighs_s[141].size();i++) std::cout << std::get<0>(collisions[neighs_s[141][i]]) << ", " <<std::get<1>(collisions[neighs_s[141][i]]) << ", " <<std::get<2>(collisions[neighs_s[141][i]])<< std::endl;
-    // std::cout << "\n" <<std::endl;
-    // for(int i = 0;i<neighs_s[325].size();i++) std::cout << std::get<0>(collisions[neighs_s[325][i]]) << ", " <<std::get<1>(collisions[neighs_s[325][i]]) << ", " <<std::get<2>(collisions[neighs_s[325][i]])<< std::endl;
-    // std::cout << "\n" <<std::endl;
-    // for(int i = 0;i<neighs_s[236].size();i++) std::cout << std::get<0>(collisions[neighs_s[236][i]]) << ", " <<std::get<1>(collisions[neighs_s[236][i]]) << ", " <<std::get<2>(collisions[neighs_s[236][i]])<< std::endl;
-    
-
-
-
-
-    // std::vector<double> avg;
-    // double temp;
-    // std::vector<int> Vrx;
-    // // std::cout << edgelist.size() << std::endl;
-    
-    // for(int r = 0; r < 20;r++)
+    // for(int s = 0;s<20;s++)
     // {
-    //     std::cout << "Computing <V_"<<r<<">" << std::endl;
-    //     temp = 0.0;
-    //     Vrx = computeBallVolumes(edgelist, r, collisions.size(),numthreads);
-    //     for (int i = 0;i<collisions.size();i++) temp+=Vrx[i];
-    //     temp/=collisions.size();
-    //     avg.push_back(temp);
+    //     double cgcf = compCausalGraphCF(edgelist, adjacencyMap, r, s, collisions.size(), numthreads);
+    //     std::cout << "r "<<r<<", s "<<s <<", CGCF " <<cgcf <<std::endl;
     // }
 
-    // for(int i = 0; i< avg.size();i++) std::cout << avg[i] << std::endl;
-
-    
-    // for (int i = 0;i<collisions.size();i++) std::cout << std::get<0>(collisions[i]) << " " <<std::get<1>(collisions[i]) << " " <<std::get<2>(collisions[i]) << "\t" << Vrx[i]<<std::endl;
-
-    // for(int i= 0;i<edgelist.size();i++) std::cout << std::get<0>(edgelist[i]) << "\t" << std::get<1>(edgelist[i])<<std::endl;
-
+  
 
     return 0;
 }
@@ -541,3 +517,45 @@ int main() {
 
 //     return nodes_at_distance_s;
 // }
+
+  // std::unordered_map<int, std::vector<int>> neighs_s = getAllNodesAtDistance(adjacencyMap, 4, collisions.size(),numthreads);
+
+    // for(int i = 0;i<collisions.size();i++) std::cout << i <<"\t"<< neighs_s[i].size() <<std::endl;
+    // std::vector<int> neigh_s_0 = getNodesAtDistance(adjacencyMap, 4, 141);
+
+    // std::vector<int> neigh_s_1 = getNodesAtDistance(adjacencyMap, 4, 325);
+
+    // std::vector<int> neigh_s_2 = getNodesAtDistance(adjacencyMap, 4, 236);
+    // std::cout << "\n" <<std::endl;
+    // for(int i = 0;i<neighs_s[141].size();i++) std::cout << std::get<0>(collisions[neighs_s[141][i]]) << ", " <<std::get<1>(collisions[neighs_s[141][i]]) << ", " <<std::get<2>(collisions[neighs_s[141][i]])<< std::endl;
+    // std::cout << "\n" <<std::endl;
+    // for(int i = 0;i<neighs_s[325].size();i++) std::cout << std::get<0>(collisions[neighs_s[325][i]]) << ", " <<std::get<1>(collisions[neighs_s[325][i]]) << ", " <<std::get<2>(collisions[neighs_s[325][i]])<< std::endl;
+    // std::cout << "\n" <<std::endl;
+    // for(int i = 0;i<neighs_s[236].size();i++) std::cout << std::get<0>(collisions[neighs_s[236][i]]) << ", " <<std::get<1>(collisions[neighs_s[236][i]]) << ", " <<std::get<2>(collisions[neighs_s[236][i]])<< std::endl;
+    
+
+
+
+
+    // std::vector<double> avg;
+    // double temp;
+    // std::vector<int> Vrx;
+    // // std::cout << edgelist.size() << std::endl;
+    
+    // for(int r = 0; r < 20;r++)
+    // {
+    //     std::cout << "Computing <V_"<<r<<">" << std::endl;
+    //     temp = 0.0;
+    //     Vrx = computeBallVolumes(edgelist, r, collisions.size(),numthreads);
+    //     for (int i = 0;i<collisions.size();i++) temp+=Vrx[i];
+    //     temp/=collisions.size();
+    //     avg.push_back(temp);
+    // }
+
+    // for(int i = 0; i< avg.size();i++) std::cout << avg[i] << std::endl;
+
+    
+    // for (int i = 0;i<collisions.size();i++) std::cout << std::get<0>(collisions[i]) << " " <<std::get<1>(collisions[i]) << " " <<std::get<2>(collisions[i]) << "\t" << Vrx[i]<<std::endl;
+
+    // for(int i= 0;i<edgelist.size();i++) std::cout << std::get<0>(edgelist[i]) << "\t" << std::get<1>(edgelist[i])<<std::endl;
+

@@ -381,52 +381,53 @@ double compCausalGraphCF(const std::vector<std::tuple<int, int>>& edgelist, std:
 
 int main() {
 
-    std::string filename = "collisions_simid6_chckpt799.txt";//"graphvolcolls.txt";// 
+    std::string filename = "collisions_simid2_chckpt199.txt";//"graphvolcolls.txt";// 
     // std::cout << "Collisions read from "<<filename <<std::endl;
     std::vector<std::tuple<int, int, double>> collisions = readCollisions(filename);
     // for (int i = 0; i< collisions.size();i++) std::cout << std::get<0>(collisions[i]) <<", "<<std::get<1>(collisions[i]) <<", "<<std::get<2>(collisions[i]) << std::endl;
 
     long long num = 256*256;
     
-    int numthreads = 60;
+    int numthreads = 16;
     // std::cout << "Using "<<numthreads<<" threads."<<std::endl;
 
 
     // std::cout  << "num = " << num <<std::endl;
 
-    // std::vector<std::tuple<int, int>> edgelist = genCausalGraph(collisions, num,numthreads);
+    std::vector<std::tuple<int, int>> edgelist = genCausalGraph(collisions, num,numthreads);
     // std::cout << "Causal graph constructed." << std::endl;
 
 
 
-    // writeCausalGraphToFile(edgelist, "cg_simid6_chckpt799.bin");
-    std::string cgfilename = "cg_simid6_chckpt799.bin"; //"cg_graphvoltest.bin";//
-    std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile(cgfilename);
+    writeCausalGraphToFile(edgelist, "cg_simid2_chckpt199.bin");
+    //std::string cgfilename = "cg_simid6_chckpt799.bin"; //"cg_graphvoltest.bin";//
+    //std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile(cgfilename);
     // std::cout << "Causal graph read from read from "<<cgfilename <<std::endl;
 
     std::unordered_map<int, std::vector<int>> adjacencyMap = createAdjacencyMap(edgelist,collisions.size());
 
-    for (int r = 2; r< 13; r++)
+//    for (int r = 2; r< 13; r++)
+//    {
+//        std::vector<int> ballVolumes = computeBallVolumes(edgelist, r, collisions.size(), numthreads);
+//        double mean = 0.0; double stdev = 0.0;
+//        for(int i = 0;i<ballVolumes.size();i++)
+//        {
+//            mean += ballVolumes[i];
+//            stdev+= ballVolumes[i]*ballVolumes[i];
+//        }
+//        mean/=ballVolumes.size();
+//        stdev/=ballVolumes.size();
+//        stdev-=mean*mean;
+//        stdev = std::sqrt(stdev);
+//        std::cout << r <<"\t" <<mean<<"\t"<<stdev<<std::endl;
+//
+    //}
+    int r = 5;
+    for(int s = 0;s<20;s++)
     {
-        std::vector<int> ballVolumes = computeBallVolumes(edgelist, r, collisions.size(), numthreads);
-        double mean = 0.0; double stdev = 0.0;
-        for(int i = 0;i<ballVolumes.size();i++)
-        {
-            mean += ballVolumes[i];
-            stdev+= ballVolumes[i]*ballVolumes[i];
-        }
-        mean/=ballVolumes.size();
-        stdev/=ballVolumes.size();
-        stdev-=mean*mean;
-        stdev = std::sqrt(stdev);
-        std::cout << r <<"\t" <<mean<<"\t"<<stdev<<std::endl;
-
-    }
-    // for(int s = 0;s<20;s++)
-    // {
-    //     double cgcf = compCausalGraphCF(edgelist, adjacencyMap, r, s, collisions.size(), numthreads);
-    //     std::cout << "r "<<r<<", s "<<s <<", CGCF " <<cgcf <<std::endl;
-    // }
+         double cgcf = compCausalGraphCF(edgelist, adjacencyMap, r, s, collisions.size(), numthreads);
+         std::cout << "r "<<r<<", s "<<s <<", CGCF " <<cgcf <<std::endl;
+     }
 
   
 

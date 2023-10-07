@@ -382,13 +382,18 @@ double compCausalGraphCF(const std::vector<std::tuple<int, int>>& edgelist, std:
 int main() {
 
     std::string filename = "collisions_simid2_chckpt199.txt";//"graphvolcolls.txt";// 
+
+
     // std::cout << "Collisions read from "<<filename <<std::endl;
+    //
     std::vector<std::tuple<int, int, double>> collisions = readCollisions(filename);
+
+
     // for (int i = 0; i< collisions.size();i++) std::cout << std::get<0>(collisions[i]) <<", "<<std::get<1>(collisions[i]) <<", "<<std::get<2>(collisions[i]) << std::endl;
 
-    long long num = 256*256;
+    long long num = 64*64; // WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
-    int numthreads = 16;
+    int numthreads = 64;
     // std::cout << "Using "<<numthreads<<" threads."<<std::endl;
 
 
@@ -400,6 +405,8 @@ int main() {
 
 
     writeCausalGraphToFile(edgelist, "cg_simid2_chckpt199.bin");
+
+
     //std::string cgfilename = "cg_simid6_chckpt799.bin"; //"cg_graphvoltest.bin";//
     //std::vector<std::tuple<int, int>> edgelist = readCausalGraphFromFile(cgfilename);
     // std::cout << "Causal graph read from read from "<<cgfilename <<std::endl;

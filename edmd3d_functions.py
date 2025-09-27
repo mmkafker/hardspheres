@@ -90,7 +90,7 @@ def GetCollisionTimeDiff3d(statei,statej,R,L):
     # t = tmax + ( -b-descr**(0.5) )/vijsq
     
     if (b<0 and descr>=0):
-        return (tmax + ( -b-descr**(0.5) )/vijsq)*(1+np.random.rand()*1e-13) # THIS NOISE APPEARS TO BE IMPORTANT
+        return (tmax + ( -b-descr**(0.5) )/vijsq)*(1-np.random.rand()*1e-13) # THIS NOISE APPEARS TO BE IMPORTANT
     return None
 
 

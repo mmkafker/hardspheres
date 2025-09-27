@@ -1,6 +1,6 @@
 from edmd3d_functions import *
 
-def GetCollisionTimeDiff3dLS(statei,statej,L,D0,gamma):
+def GetCollisionTimeDiff3dLS(statei,statej,R,L,a0):
     tmax = statei[0]
     if statej[0]>statei[0]:
         tmax = statej[0]
@@ -12,35 +12,9 @@ def GetCollisionTimeDiff3dLS(statei,statej,L,D0,gamma):
     vijsq = vij[0]*vij[0] + vij[1]*vij[1] + vij[2]*vij[2]
     b =     rij[0]*vij[0] + rij[1]*vij[1] + rij[2]*vij[2]
 
-
-    A = vijsq - gamma**2
-    B = b - gamma*gamma*tmax-D0*gamma
-    C = rijsq - (gamma*tmax)**2 - 2*D0*gamma*tmax-D0*D0
-    Bsq = B*B
-
-    descr = Bsq - A*C
-    # t = tmax + ( -b-descr**(0.5) )/vijsq
-    
-    if ((B<=0 or A<0) and descr>=0):
-        # print(f"A = {A}, B = {B}, C = {C}, t = {(tmax + ( -B-descr**(0.5) )/A)}")
-        return (tmax + ( -B-descr**(0.5) )/A)*(1-np.random.rand()*1e-13) # THIS NOISE APPEARS TO BE IMPORTANT
-    return None
-
-def GetCollisionTimeDiff3dLS_(statei,statej,R,L,gamma):
-    tmax = statei[0]
-    if statej[0]>statei[0]:
-        tmax = statej[0]
-    ri = statei[1:4]+(tmax-statei[0])*statei[4:7]
-    rj = statej[1:4]+(tmax-statej[0])*statej[4:7]
-    rij = PBCvec3d(rj-ri,L)
-    vij = statej[4:7]-statei[4:7]
-    rijsq = rij[0]*rij[0] + rij[1]*rij[1] + rij[2]*rij[2]
-    vijsq = vij[0]*vij[0] + vij[1]*vij[1] + vij[2]*vij[2]
-    b =     rij[0]*vij[0] + rij[1]*vij[1] + rij[2]*vij[2]
-
-    A = vijsq - gamma**2
-    B = b - gamma*gamma*tmax
-    C = rijsq - (gamma*tmax)**2
+    A = vijsq - a0**2
+    B = b - a0*a0*tmax
+    C = rijsq - (a0*tmax)**2
     Bsq = B*B
 
     descr = Bsq - A*C
@@ -51,7 +25,7 @@ def GetCollisionTimeDiff3dLS_(statei,statej,R,L,gamma):
         return (tmax + ( -B-descr**(0.5) )/A)*(1+np.random.rand()*1e-13) # THIS NOISE APPEARS TO BE IMPORTANT
     return None
 
-def FindCollisions3dLS(particle, state,cell2particle,cellind,ncells,R,L,D0,gamma):
+def FindCollisions3dLS(particle, state,cell2particle,cellind,ncells,R,L,a0):
     c0 = cellind[0]
     c1 = cellind[1]
     c2 = cellind[2]
@@ -100,21 +74,21 @@ def FindCollisions3dLS(particle, state,cell2particle,cellind,ncells,R,L,D0,gamma
     colls = []
     
     for neigh in neighbors:
-        t = GetCollisionTimeDiff3dLS(state[particle],state[neigh],L,D0,gamma)
+        t = GetCollisionTimeDiff3dLS(state[particle],state[neigh],R,L,a0)
         if t is not None:
             # print(f"Time appended to list is {t}")
             colls.append((t,1,particle,neigh,-1,-1,-1,-1,-1))
 
     return colls
 
-def GenEventDictionary3dLS(num, state ,cell2particle,ncells,R,L,cellsize,particle2cell,cellcenters,D0,gamma):
+def GenEventDictionary3dLS(num, state ,cell2particle,ncells,R,L,cellsize,particle2cell,cellcenters,a0):
     ed = {};
 
     for p in range(num):
 
         cell = particle2cell[p]
         xcen, ycen, zcen = cellcenters[cell]
-        colls = FindCollisions3dLS(p, state ,cell2particle,cell,ncells,R,L,D0,gamma)
+        colls = FindCollisions3dLS(p, state ,cell2particle,cell,ncells,R,L,a0)
         ccross = FindCellCrossings3d(p, state[p], cell,xcen,ycen,zcen, cellsize,ncells)
 
         events = colls+ccross
@@ -124,7 +98,7 @@ def GenEventDictionary3dLS(num, state ,cell2particle,ncells,R,L,cellsize,particl
 
     return ed
 
-def simstep3dLS(ed,ec,state,particle2cell,cell2particle,collcounter,collisions,L,R,ncells,cellcenters,cellsize,D0,gamma): # state is (num,5) tensor with data (t,x,y,vx,vy) for each row representing state of each particle at last update
+def simstep3dLS(ed,ec,state,particle2cell,cell2particle,collcounter,collisions,L,R,ncells,cellcenters,cellsize,a0): # state is (num,5) tensor with data (t,x,y,vx,vy) for each row representing state of each particle at last update
     ne = ec[0]#.pop(0)
     # print("Next event:")
     # print(ne)
@@ -178,7 +152,7 @@ def simstep3dLS(ed,ec,state,particle2cell,cell2particle,collcounter,collisions,L
         for ev in ed[p]:
             ec.remove(ev)
 
-        colls = FindCollisions3dLS(p, state,cell2particle,particle2cell[p],ncells,R,L,D0,gamma)
+        colls = FindCollisions3dLS(p, state,cell2particle,particle2cell[p],ncells,R,L,a0)
         cell = particle2cell[p]
         xcen, ycen, zcen = cellcenters[cell]
         ccross = FindCellCrossings3d(p,state[p], particle2cell[p],xcen,ycen,zcen,cellsize,ncells)
@@ -219,7 +193,7 @@ def simstep3dLS(ed,ec,state,particle2cell,cell2particle,collcounter,collisions,L
         vij = state[pj,4:7]-state[pi,4:7]
         nhat = rij/np.linalg.norm(rij)
         b = rij[0]*vij[0] + rij[1]*vij[1] + rij[2]*vij[2]
-        dv = (vij[0]*nhat[0]+vij[1]*nhat[1]+vij[2]*nhat[2]   -   gamma)*nhat # this is the change!
+        dv = (vij[0]*nhat[0]+vij[1]*nhat[1]+vij[2]*nhat[2]   -   a0)*nhat # this is the change!
         state[pi,4:7]+=dv#b*nhat/(2.0*R) 
         state[pj,4:7]-=dv#b*nhat/(2.0*R)
 
@@ -227,7 +201,7 @@ def simstep3dLS(ed,ec,state,particle2cell,cell2particle,collcounter,collisions,L
             for ev in ed[p]:
                 ec.remove(ev)
 
-            colls = FindCollisions3dLS(p, state,cell2particle,particle2cell[p],ncells,R,L,D0,gamma)
+            colls = FindCollisions3dLS(p, state,cell2particle,particle2cell[p],ncells,R,L,a0)
             cell = particle2cell[p]
             xcen, ycen, zcen = cellcenters[cell]
             ccross = FindCellCrossings3d(p, state[p], particle2cell[p],xcen,ycen,zcen,cellsize,ncells)
@@ -240,7 +214,7 @@ def simstep3dLS(ed,ec,state,particle2cell,cell2particle,collcounter,collisions,L
 
     return ed, ec, particle2cell,cell2particle, state, collisions,collcounter, tnew
 
-def LS3d(positions, velocities, L, R, num, Tmax,writestep,D0,gamma):
+def LS3d(positions, velocities, L, R, num, Tmax,writestep,a0):
     if(len(positions)!=num or len(velocities)!=num):
         print("Check value of 'num'")
         assert False
@@ -256,7 +230,7 @@ def LS3d(positions, velocities, L, R, num, Tmax,writestep,D0,gamma):
 
     print(f"Cell size = {cellsize}")
 
-    # print(cellcenters)
+    print(cellcenters)
 
     state = np.zeros((num,7))
 
@@ -270,7 +244,7 @@ def LS3d(positions, velocities, L, R, num, Tmax,writestep,D0,gamma):
     allstates.append(statetf)
 
 
-    ed = GenEventDictionary3dLS(num, state ,cell2particle,ncells,R,L,cellsize,particle2cell,cellcenters,D0,gamma)
+    ed = GenEventDictionary3dLS(num, state ,cell2particle,ncells,R,L,cellsize,particle2cell,cellcenters,a0)
     ec = GenEventCalendar3d(ed,num)
 
     collcounter = -1
@@ -283,7 +257,7 @@ def LS3d(positions, velocities, L, R, num, Tmax,writestep,D0,gamma):
 
         s+=1
         
-        ed, ec, particle2cell,cell2particle, state, collisions,collcounter,tnew = simstep3dLS(ed,ec,state,particle2cell,cell2particle,collcounter,collisions,L,R,ncells,cellcenters,cellsize,D0,gamma)
+        ed, ec, particle2cell,cell2particle, state, collisions,collcounter,tnew = simstep3dLS(ed,ec,state,particle2cell,cell2particle,collcounter,collisions,L,R,ncells,cellcenters,cellsize,a0)
         times.append(tnew)
 
         
@@ -294,7 +268,7 @@ def LS3d(positions, velocities, L, R, num, Tmax,writestep,D0,gamma):
             allstates.append(statetf)
 
             
-            print(f"Current packing fraction = {num*(4*np.pi/3)*(0.5*(D0+gamma*tnew))**3/L**3}")
+            print(f"Current packing fraction = {num*(4*np.pi/3)*(0.5*a0*tnew)**3/L**3}")
             ecur = np.sum(np.array([0.5*np.linalg.norm(state[i,4:7])**2 for i in range(num)]))
             print(f"Current energy = {ecur}")
             # if np.sqrt(2*ecur/num) > 10:
